@@ -6,9 +6,9 @@ import { v4 as uuidv4 } from 'uuid';
 import Timer from '@/components/timer/timer';
 import { joinRoom, leaveRoom, handlePresenceJoin, handlePresenceLeave, getRandomCapyCharacter } from '@/app/api/api';
 import { NavBar } from '@/components/navBar/navbar';
+import { ChatButton } from '@/components/chatButton/chatbutton';
 import Image from 'next/image';
 
-// Initialize Supabase client
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -20,6 +20,13 @@ export default function RoomPage() {
     const [error, setError] = useState(null);
     const router = useRouter();
     const [currentUserUUID, setCurrentUserUUID] = useState(null);
+    const [messages, setMessages] = useState([]);
+    const [newMessage, setNewMessage] = useState('');
+    const [settings, setSettings] = useState({
+        pomodoroTime: 25,
+        breakTime: 5,
+        isChatEnabled: true
+    });
 
     useEffect(() => {
         let channel;
@@ -34,9 +41,8 @@ export default function RoomPage() {
                 };
 
                 await joinRoom(roomId, currentUserData);
-                setUsers([currentUserData]); // Initialize users with only the current user
+                setUsers([currentUserData]);
 
-                // Set up Supabase real-time connection
                 channel = supabase.channel(`room-${roomId}`);
                 channel
                     .on('presence', { event: 'join' }, ({ key, newPresences }) => {
@@ -52,6 +58,9 @@ export default function RoomPage() {
                         leftPresences.forEach(presence => handlePresenceLeave(roomId, presence));
                         setUsers(prevUsers => prevUsers.filter(user => !leftPresences.find(left => left.id === user.id)));
                     })
+                    .on('broadcast', { event: 'chat_message' }, ({ payload }) => {
+                        setMessages(prevMessages => [...prevMessages, payload]);
+                    })
                     .subscribe(async (status) => {
                         if (status === 'SUBSCRIBED') {
                             await channel.track(currentUserData);
@@ -64,7 +73,6 @@ export default function RoomPage() {
         };
         setupRoom();
         return () => {
-            // Clean up function
             if (channel) {
                 channel.unsubscribe();
             }
@@ -86,7 +94,31 @@ export default function RoomPage() {
         }
     };
 
-    console.log('Current users:', users);
+    const sendMessage = async () => {
+        if (newMessage.trim() !== '' && settings.isChatEnabled) {
+            const message = {
+                id: uuidv4(),
+                userId: currentUserUUID,
+                username: users.find(user => user.id === currentUserUUID)?.username || 'Unknown User',
+                text: newMessage,
+                timestamp: new Date().toISOString(),
+            };
+
+            await supabase.channel(`room-${roomId}`).send({
+                type: 'broadcast',
+                event: 'chat_message',
+                payload: message,
+            });
+
+            setNewMessage('');
+        }
+    };
+
+    const handleSettingsChange = (newSettings) => {
+        setSettings(newSettings);
+        // You might want to broadcast the new settings to all users in the room
+        // or save them to a database for persistence
+    };
 
     if (error) {
         return <div className="alert alert-error">{error}</div>;
@@ -94,7 +126,7 @@ export default function RoomPage() {
 
     return (
         <div className="min-h-screen bg-base-200">
-            <NavBar />
+            <NavBar showSettings={true} onSettingsChange={handleSettingsChange} />
             <div className="container mx-auto p-4">
                 <div className="flex justify-between items-center mb-10">
                     <h1 className="text-2xl">Room {roomId}</h1>
@@ -107,16 +139,27 @@ export default function RoomPage() {
                                 <Image
                                     src={getRandomCapyCharacter()}
                                     alt={user.username}
-                                    width={200}
-                                    height={200}
+                                    width={150}
+                                    height={150}
                                 />
                                 <span className="badge badge-primary mt-2 mb-[-1rem]">{user.username}</span>
                             </div>
                         ))}
                     </div>
-                    <Timer />
+                    <Timer 
+                        pomodoroTime={settings.pomodoroTime} 
+                        breakTime={settings.breakTime} 
+                    />
                 </div>
             </div>
+            {settings.isChatEnabled && (
+                <ChatButton 
+                    messages={messages} 
+                    sendMessage={sendMessage} 
+                    newMessage={newMessage} 
+                    setNewMessage={setNewMessage} 
+                />
+            )}
         </div>
     );
 }
