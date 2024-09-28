@@ -1,41 +1,11 @@
-"use client"
-
-import React from 'react';
-import { useRouter } from 'next/navigation'
 
 export function NavBar() {
-    const router = useRouter();
-
-    const createRoom = async () => {
-        try {
-            const response = await fetch('/api/createRoom', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to create room');
-            }
-            
-            const { roomId } = await response.json();
-            router.push(`/room/${roomId}`);
-        } catch (error) {
-            console.error('Error creating room:', error);
-            // You might want to show an error message to the user here
-        }
-    };
-
     return (
         <div className="navbar bg-base-100">
             <div className="flex-1">
                 <a className="btn btn-ghost text-xl">CapyCare</a>
             </div>
             <div className="flex-none">
-                <button className="btn btn-primary mr-2" onClick={createRoom}>
-                    Create Room
-                </button>
                 <button className="btn btn-square btn-ghost">
                     <svg xmlns="http://www.w3.org/2000/svg"
                     fill="none"
