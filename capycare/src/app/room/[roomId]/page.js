@@ -1,9 +1,11 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
+import { v4 as uuidv4 } from 'uuid';
 import Timer from '@/components/timer/timer';
 import { joinRoom, leaveRoom, handlePresenceJoin, handlePresenceLeave } from '@/app/api/api';
+import { NavBar } from '@/components/navBar/navbar';
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -13,7 +15,7 @@ const supabase = createClient(
 
 const capyCharacters = [
     'capybara_default.png'
-]
+];
 
 function getRandomCapyCharacter() {
     const randomIndex = Math.floor(Math.random() * capyCharacters.length);
@@ -24,12 +26,25 @@ export default function RoomPage() {
     const { roomId } = useParams();
     const [users, setUsers] = useState([]);
     const [error, setError] = useState(null);
+    const router = useRouter();
+    const [currentUserUUID, setCurrentUserUUID] = useState(null);
 
     useEffect(() => {
         let channel;
         const setupRoom = async () => {
             try {
-                await joinRoom(roomId);
+                const uuid = uuidv4();
+                setCurrentUserUUID(uuid);
+
+                const currentUserData = {
+                    id: uuid,
+                    username: 'current_username', // Replace with actual username
+                    avatar: getRandomCapyCharacter()
+                };
+
+                await joinRoom(roomId, currentUserData);
+                setUsers([currentUserData]); // Initialize users with only the current user
+
                 // Set up Supabase real-time connection
                 channel = supabase.channel(`room-${roomId}`);
                 channel
@@ -38,10 +53,11 @@ export default function RoomPage() {
                         newPresences.forEach(presence => handlePresenceJoin(roomId, presence));
                         setUsers(prevUsers => [
                             ...prevUsers,
-                            ...newPresences.map(user => ({
-                                ...user,
-                                avatar: getRandomCapyCharacter()
-                            }))
+                            ...newPresences.filter(newUser => !prevUsers.some(existingUser => existingUser.id === newUser.id))
+                                .map(user => ({
+                                    ...user,
+                                    avatar: getRandomCapyCharacter()
+                                }))
                         ]);
                     })
                     .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
@@ -51,13 +67,7 @@ export default function RoomPage() {
                     })
                     .subscribe(async (status) => {
                         if (status === 'SUBSCRIBED') {
-                            const userData = {
-                                id: 'current_user_id', // Replace with actual user ID
-                                username: 'current_username', // Replace with actual username
-                                avatar: getRandomCapyCharacter()
-                            };
-                            await channel.track(userData);
-                            setUsers(prevUsers => [...prevUsers, userData]);
+                            await channel.track(currentUserData);
                         }
                     });
             } catch (error) {
@@ -71,41 +81,58 @@ export default function RoomPage() {
             if (channel) {
                 channel.unsubscribe();
             }
-            leaveRoom(roomId, 'current_user_id'); // Replace with actual user ID
+            if (currentUserUUID) {
+                leaveRoom(roomId, currentUserUUID);
+            }
         };
     }, [roomId]);
+
+    const handleLeaveRoom = async () => {
+        try {
+            if (currentUserUUID) {
+                await leaveRoom(roomId, currentUserUUID);
+            }
+            router.push('/'); // Redirect to home page or wherever you want after leaving
+        } catch (error) {
+            console.error('Error leaving room:', error);
+            setError('Failed to leave the room. Please try again.');
+        }
+    };
 
     console.log('Current users:', users);
 
     if (error) {
-        return <div className="error">{error}</div>;
+        return <div className="alert alert-error">{error}</div>;
     }
 
     return (
-        <div className="p-4">
-            <h1 className="text-2xl mb-10">Room {roomId}</h1>
-            <div className="relative">
-                <div className="flex justify-center mb-[-10rem]">
-                    <div className="flex flex-wrap gap-4 justify-center">
-                        {users.map(user => (
-                            <div key={user.id} className="flex flex-col items-center">
-                                <div 
-                                    className="w-32 h-32 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden"
-                                >
-                                    <img
-                                        src={user.avatar}
-                                        alt={user.username}
-                                        className="w-full h-full object-cover"
-                                    />
-                                </div>
-                                <span className="text-sm mt-1">{user.username}</span>
-                            </div>
-                        ))}
-                    </div>
+        <div className="min-h-screen bg-base-200">
+            <NavBar />
+            <div className="container mx-auto p-4">
+                <div className="flex justify-between items-center mb-10">
+                    <h1 className="text-2xl">Room {roomId}</h1>
+                    <button onClick={handleLeaveRoom} className="btn btn-error btn-sm">Leave Room</button>
                 </div>
-                <Timer />
+                <div className="relative">
+                    <div className="flex justify-center mb-[-10rem]">
+                        <div className="flex flex-wrap gap-4 justify-center">
+                            {users.map(user => (
+                                <div key={user.id} className="flex flex-col items-center">
+                                    <div className="w-32 h-32 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden ring ring-primary ring-offset-base-100 ring-offset-2">
+                                        <img
+                                            src={user.avatar}
+                                            alt={user.username}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    </div>
+                                    <span className="badge badge-primary mt-2">{user.username}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <Timer />
+                </div>
             </div>
         </div>
-        
     );
 }

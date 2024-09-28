@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { v4 as uuidv4 } from 'uuid';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -6,6 +7,7 @@ const supabase = createClient(
 );
 
 const rooms = new Map();
+const userUUIDs = new Map(); // Map to store user_id to UUID mapping
 
 function generateRoomCode() {
     return Math.floor(100000 + Math.random() * 900000).toString();
@@ -16,7 +18,6 @@ function createRoom() {
     do {
         roomId = generateRoomCode();
     } while (rooms.has(roomId));
-
     rooms.set(roomId, { users: [], status: 'waiting' });
     return roomId;
 }
@@ -24,6 +25,9 @@ function createRoom() {
 function joinRoom(roomId, user) {
     const room = rooms.get(roomId);
     if (room && room.status === 'waiting') {
+        const uuid = uuidv4();
+        userUUIDs.set(user.id, uuid);
+        user.uuid = uuid; // Add UUID to user object
         room.users.push(user);
         if (room.users.length === 1) {
             startGame(roomId);
@@ -40,6 +44,8 @@ function leaveRoom(roomId, userId) {
         if (room.users.length === 0) {
             rooms.delete(roomId);
         }
+        // Remove UUID when user leaves
+        userUUIDs.delete(userId);
     }
 }
 
@@ -94,6 +100,10 @@ function startGame(roomId) {
     }
 }
 
+function getUserUUID(userId) {
+    return userUUIDs.get(userId);
+}
+
 export {
     createRoom,
     joinRoom,
@@ -101,5 +111,6 @@ export {
     handlePresenceJoin,
     handlePresenceLeave,
     openRoom,
-    closeRoom
+    closeRoom,
+    getUserUUID
 };
