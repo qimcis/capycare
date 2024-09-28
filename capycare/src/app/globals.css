@@ -1,5 +1,4 @@
 @import url('https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,100..900;1,100..900&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -9,21 +8,39 @@
   --foreground: #171717;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+[data-theme='dark'] {
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family:'Jost', Arial, Helvetica, sans-serif;
+  font-family: 'Jost', Arial, Helvetica, sans-serif;
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+.timer-text {
+  color: var(--foreground);
+  transition: none !important;
+}
+
+/* Remove any transitions that might be causing delays */
+*, *::before, *::after {
+  transition: none !important;
+}
+
+/* Ensure immediate color change for specific elements */
+[data-theme='light'] .timer-text,
+[data-theme='dark'] .timer-text,
+[data-theme='light'] .btn,
+[data-theme='dark'] .btn,
+[data-theme='light'] .navbar,
+[data-theme='dark'] .navbar {
+  transition: none !important;
 }
