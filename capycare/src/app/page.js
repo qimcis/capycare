@@ -1,8 +1,7 @@
-import Image from "next/image";
-
 export default function Home() {
   return (
-    <div>
-    </div>
-  );
+    <>
+      <button className="btn btn-primary">Hello daisyUI!</button>
+    </>
+  )
 }
