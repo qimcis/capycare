@@ -14,7 +14,7 @@ export default function Timer() {
     useEffect(() => {
         let interval;
         if (isRunning && time > 0) {
-          interval = setInterval(() => {
+          interval = setInterval(() => {  
             setTime((prevTime) => prevTime - 1);
           }, 1000);
         } else if (time === 0) {
@@ -74,7 +74,7 @@ export default function Timer() {
             <button className="btn" onClick={() => switchMode('shortBreak')}>Short Break</button>
             <button className="btn" onClick={() => switchMode('longBreak')}>Long Break</button>
         </div>
-        <span className="countdown font-mono text-7xl">
+        <span className="countdown font-Jost text-9xl">
             <span style={{"--value": minutes}}></span>:
             <span style={{"--value": seconds}}></span>
         </span>

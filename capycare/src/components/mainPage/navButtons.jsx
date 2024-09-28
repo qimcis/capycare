@@ -25,7 +25,7 @@ export function NavButtons() {
             router.push(`/room/${roomId}`);
         } catch (error) {
             console.error('Error creating room:', error);
-            // Handle error (e.g., show an error message to the user)
+            // handle error
         }
     };
 
@@ -39,10 +39,9 @@ export function NavButtons() {
     };
 
     return (
-        <div className="h-screen flex flex-col items-center justify-center space-y-4">
+        <div className="flex flex-col items-center justify-center space-y-4">
             <button className="btn btn-wide" onClick={createRoom}>Create Room</button>
             <button className="btn btn-wide" onClick={() => setIsModalOpen(true)}>Join Room</button>
-
             <input type="checkbox" id="join-room-modal" className="modal-toggle" checked={isModalOpen} onChange={() => setIsModalOpen(!isModalOpen)} />
             <div className="modal">
                 <div className="modal-box">

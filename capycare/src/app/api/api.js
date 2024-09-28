@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import { v4 as uuidv4 } from 'uuid';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -8,8 +7,16 @@ const supabase = createClient(
 
 const rooms = new Map();
 
+function generateRoomCode() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
 function createRoom() {
-    const roomId = uuidv4();
+    let roomId;
+    do {
+        roomId = generateRoomCode();
+    } while (rooms.has(roomId));
+
     rooms.set(roomId, { users: [], status: 'waiting' });
     return roomId;
 }
@@ -18,7 +25,7 @@ function joinRoom(roomId, user) {
     const room = rooms.get(roomId);
     if (room && room.status === 'waiting') {
         room.users.push(user);
-        if (room.users.length === 1) { 
+        if (room.users.length === 1) {
             startGame(roomId);
         }
         return true;
