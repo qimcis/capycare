@@ -1,7 +1,13 @@
+import Timer from "@/components/timer/timer";
+import { NavBar } from "@/components/navBar/navbar";
+import { ChatButton } from "@/components/chatButton/chatbutton";
+
 export default function Home() {
   return (
-    <>
-      <button className="btn btn-primary">Hello daisyUI!</button>
-    </>
-  )
+    <div>
+      <NavBar/>
+      <Timer/>
+      <ChatButton/>
+    </div>
+  );
 }
