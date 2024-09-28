@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import Timer from '@/components/timer/timer';
-import { joinRoom, leaveRoom, handlePresenceJoin, handlePresenceLeave, getRandomCapyCharacter } from '@/app/api/api';
+import { joinRoom, leaveRoom, handlePresenceJoin, handlePresenceLeave, getRandomCapyCharacter } from '@/app/api/api'; // Removed getRandomCapyCharacter from import
 import { NavBar } from '@/components/navBar/navbar';
 import { ChatButton } from '@/components/chatButton/chatbutton';
 import Image from 'next/image';
@@ -23,9 +23,13 @@ export default function RoomPage() {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [settings, setSettings] = useState({
-        pomodoroTime: 25,
-        breakTime: 5,
+        pomodoroTime: 25 * 60,
+        breakTime: 5 * 60,
         isChatEnabled: true
+    });
+    const [timerState, setTimerState] = useState({
+        time: settings.pomodoroTime,
+        isRunning: false
     });
 
     useEffect(() => {
@@ -38,8 +42,11 @@ export default function RoomPage() {
                 const currentUserData = {
                     id: uuid,
                     username: 'current_username', // Replace with actual username
+                    avatar: getRandomCapyCharacter()
+
                 };
 
+                // Use the randomizeOwnAvatar function to randomize avatar only for the current user
                 await joinRoom(roomId, currentUserData);
                 setUsers([currentUserData]);
 
@@ -60,6 +67,9 @@ export default function RoomPage() {
                     })
                     .on('broadcast', { event: 'chat_message' }, ({ payload }) => {
                         setMessages(prevMessages => [...prevMessages, payload]);
+                    })
+                    .on('broadcast', { event: 'timer_update' }, ({ payload }) => {
+                        setTimerState(payload);
                     })
                     .subscribe(async (status) => {
                         if (status === 'SUBSCRIBED') {
@@ -120,6 +130,15 @@ export default function RoomPage() {
         // or save them to a database for persistence
     };
 
+    const handleTimerChange = async (newState) => {
+        setTimerState(newState);
+        await supabase.channel(`room-${roomId}`).send({
+            type: 'broadcast',
+            event: 'timer_update',
+            payload: newState,
+        });
+    };
+
     if (error) {
         return <div className="alert alert-error">{error}</div>;
     }
@@ -133,11 +152,11 @@ export default function RoomPage() {
                     <button onClick={handleLeaveRoom} className="btn btn-error btn-sm">Leave Room</button>
                 </div>
                 <div className="flex flex-col items-center">
-                    <div className="flex flex-wrap gap-8 justify-center mb-[-3rem]">
+                    <div className="flex flex-wrap gap-8 justify-center mb-[-12rem]">
                         {users.map(user => (
                             <div key={user.id} className="flex flex-col items-center">
                                 <Image
-                                    src={getRandomCapyCharacter()}
+                                    src={user.avatar} // Use user.avatar to display the correct avatar
                                     alt={user.username}
                                     width={150}
                                     height={150}
@@ -147,8 +166,9 @@ export default function RoomPage() {
                         ))}
                     </div>
                     <Timer 
-                        pomodoroTime={settings.pomodoroTime} 
-                        breakTime={settings.breakTime} 
+                        initialTime={timerState.time}
+                        isRunningProp={timerState.isRunning}
+                        onTimerChange={handleTimerChange}
                     />
                 </div>
             </div>

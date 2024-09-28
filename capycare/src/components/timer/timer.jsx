@@ -1,30 +1,33 @@
 "use client"
 import React, { useState, useEffect, useCallback } from "react";
 
-export default function Timer() {
-    const [time, setTime] = useState(25 * 60);
-    const [isRunning, setIsRunning] = useState(false);
+export default function Timer({ initialTime, isRunningProp, onTimerChange }) {
+    const [time, setTime] = useState(initialTime);
+    const [isRunning, setIsRunning] = useState(isRunningProp);
     const [isPomodoro, setIsPomodoro] = useState(true);
     const [theme, setTheme] = useState('light');
-    const [key, setKey] = useState(0); // Add this line
+    const [key, setKey] = useState(0);
     const pomodoroTime = 25 * 60;
     const shortBreakTime = 5 * 60;
     const longBreakTime = 15 * 60;
 
     useEffect(() => {
+        setTime(initialTime);
+        setIsRunning(isRunningProp);
+    }, [initialTime, isRunningProp]);
+
+    useEffect(() => {
         const savedTheme = localStorage.getItem('theme') || 'light';
         setTheme(savedTheme);
         document.documentElement.setAttribute('data-theme', savedTheme);
-        setKey(prev => prev + 1); // Force re-render
-        console.log('Initial theme:', savedTheme);
+        setKey(prev => prev + 1);
 
         const handleStorageChange = (e) => {
             if (e.key === 'theme') {
                 const updatedTheme = e.newValue || 'light';
                 setTheme(updatedTheme);
                 document.documentElement.setAttribute('data-theme', updatedTheme);
-                setKey(prev => prev + 1); // Force re-render
-                console.log('Theme updated:', updatedTheme);
+                setKey(prev => prev + 1);
             }
         };
 
@@ -39,8 +42,8 @@ export default function Timer() {
     useEffect(() => {
         let interval;
         if (isRunning && time > 0) {
-            interval = setInterval(() => {  
-                setTime((prevTime) => prevTime - 1);
+            interval = setInterval(() => {
+                setTime(prevTime => prevTime - 1);
             }, 1000);
         } else if (time === 0) {
             handleTimerComplete();
@@ -57,38 +60,42 @@ export default function Timer() {
             setIsPomodoro(true);
             setTime(pomodoroTime);
         }
-    }
+        onTimerChange({ time: isPomodoro ? shortBreakTime : pomodoroTime, isRunning: false });
+    };
 
     const toggleTimer = useCallback(() => {
-        setIsRunning((prevIsRunning) => !prevIsRunning);
-    }, []);
+        const newIsRunning = !isRunning;
+        setIsRunning(newIsRunning);
+        onTimerChange({ time, isRunning: newIsRunning });
+    }, [isRunning, time, onTimerChange]);
 
     const resetTimer = useCallback(() => {
         setIsRunning(false);
-        if (isPomodoro) {
-            setTime(pomodoroTime);
-        } else {
-            setTime(shortBreakTime);
-        }
-    }, [isPomodoro]);
+        const newTime = isPomodoro ? pomodoroTime : shortBreakTime;
+        setTime(newTime);
+        onTimerChange({ time: newTime, isRunning: false });
+    }, [isPomodoro, onTimerChange]);
 
     const switchMode = useCallback((mode) => {
         setIsRunning(false);
         setIsPomodoro(mode === 'pomodoro');
+        let newTime;
         if (mode === 'pomodoro') {
-            setTime(pomodoroTime);
+            newTime = pomodoroTime;
         } else if (mode === 'shortBreak') {
-            setTime(shortBreakTime);
+            newTime = shortBreakTime;
         } else if (mode === 'longBreak') {
-            setTime(longBreakTime);
+            newTime = longBreakTime;
         }
-    }, []);
+        setTime(newTime);
+        onTimerChange({ time: newTime, isRunning: false });
+    }, [onTimerChange]);
 
     const formatTime = (timeInSeconds) => {
         const minutes = Math.floor(timeInSeconds / 60);
         const seconds = timeInSeconds % 60;
         return { minutes, seconds };
-    }
+    };
 
     const { minutes, seconds } = formatTime(time);
 
