@@ -57,7 +57,7 @@ export function NavButtons() {
                         <button className="btn btn-primary" onClick={joinRoom}>Join</button>
                         <button className="btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
                     </div>
-                </div>
+                </div>  
             </div>
         </div>
     );

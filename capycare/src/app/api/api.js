@@ -13,6 +13,12 @@ function generateRoomCode() {
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+function getRandomCapyCharacter() {
+    const numberOfCapyCharacters = 15;
+    const randomIndex = Math.floor(Math.random() * numberOfCapyCharacters) + 1;
+    return `/images/capy${randomIndex}.png`;
+}
+
 function createRoom() {
     let roomId;
     do {
@@ -27,7 +33,8 @@ function joinRoom(roomId, user) {
     if (room && room.status === 'waiting') {
         const uuid = uuidv4();
         userUUIDs.set(user.id, uuid);
-        user.uuid = uuid; // Add UUID to user object
+        user.uuid = uuid; 
+        user.avatar = getRandomCapyCharacter(); 
         room.users.push(user);
         if (room.users.length === 1) {
             startGame(roomId);
@@ -53,7 +60,7 @@ function handlePresenceJoin(roomId, presence) {
     const newUser = {
         id: presence.user_id,
         name: presence.username,
-        avatar: presence.avatar
+        avatar: getRandomCapyCharacter() 
     };
    
     if (joinRoom(roomId, newUser)) {
@@ -92,7 +99,7 @@ function closeRoom(roomId) {
       });
 }
 
-function startGame(roomId) {
+function starTimer(roomId) {
     const room = rooms.get(roomId);
     if (room) {
         room.status = 'playing';
@@ -105,6 +112,7 @@ function getUserUUID(userId) {
 }
 
 export {
+    getRandomCapyCharacter,
     createRoom,
     joinRoom,
     leaveRoom,

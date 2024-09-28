@@ -4,23 +4,15 @@ import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import Timer from '@/components/timer/timer';
-import { joinRoom, leaveRoom, handlePresenceJoin, handlePresenceLeave } from '@/app/api/api';
+import { joinRoom, leaveRoom, handlePresenceJoin, handlePresenceLeave, getRandomCapyCharacter } from '@/app/api/api';
 import { NavBar } from '@/components/navBar/navbar';
+import Image from 'next/image';
 
 // Initialize Supabase client
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
-
-const capyCharacters = [
-    'capybara_default.png'
-];
-
-function getRandomCapyCharacter() {
-    const randomIndex = Math.floor(Math.random() * capyCharacters.length);
-    return `/capyCharacters/${capyCharacters[randomIndex]}`;
-}
 
 export default function RoomPage() {
     const { roomId } = useParams();
@@ -39,7 +31,6 @@ export default function RoomPage() {
                 const currentUserData = {
                     id: uuid,
                     username: 'current_username', // Replace with actual username
-                    avatar: getRandomCapyCharacter()
                 };
 
                 await joinRoom(roomId, currentUserData);
@@ -54,10 +45,6 @@ export default function RoomPage() {
                         setUsers(prevUsers => [
                             ...prevUsers,
                             ...newPresences.filter(newUser => !prevUsers.some(existingUser => existingUser.id === newUser.id))
-                                .map(user => ({
-                                    ...user,
-                                    avatar: getRandomCapyCharacter()
-                                }))
                         ]);
                     })
                     .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
@@ -92,7 +79,7 @@ export default function RoomPage() {
             if (currentUserUUID) {
                 await leaveRoom(roomId, currentUserUUID);
             }
-            router.push('/'); // Redirect to home page or wherever you want after leaving
+            router.push('/'); 
         } catch (error) {
             console.error('Error leaving room:', error);
             setError('Failed to leave the room. Please try again.');
@@ -113,22 +100,19 @@ export default function RoomPage() {
                     <h1 className="text-2xl">Room {roomId}</h1>
                     <button onClick={handleLeaveRoom} className="btn btn-error btn-sm">Leave Room</button>
                 </div>
-                <div className="relative">
-                    <div className="flex justify-center mb-[-10rem]">
-                        <div className="flex flex-wrap gap-4 justify-center">
-                            {users.map(user => (
-                                <div key={user.id} className="flex flex-col items-center">
-                                    <div className="w-32 h-32 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden ring ring-primary ring-offset-base-100 ring-offset-2">
-                                        <img
-                                            src={user.avatar}
-                                            alt={user.username}
-                                            className="w-full h-full object-cover"
-                                        />
-                                    </div>
-                                    <span className="badge badge-primary mt-2">{user.username}</span>
-                                </div>
-                            ))}
-                        </div>
+                <div className="flex flex-col items-center">
+                    <div className="flex flex-wrap gap-8 justify-center mb-[-3rem]">
+                        {users.map(user => (
+                            <div key={user.id} className="flex flex-col items-center">
+                                <Image
+                                    src={getRandomCapyCharacter()}
+                                    alt={user.username}
+                                    width={200}
+                                    height={200}
+                                />
+                                <span className="badge badge-primary mt-2 mb-[-1rem]">{user.username}</span>
+                            </div>
+                        ))}
                     </div>
                     <Timer />
                 </div>
