@@ -7,7 +7,7 @@ import { joinRoom, leaveRoom, handlePresenceJoin, handlePresenceLeave, getRandom
 import { NavBar } from '@/components/navBar/navbar';
 import { ChatButton } from '@/components/chatButton/chatbutton';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import TaskList from '@/components/taskList/tasklist';
 
 const supabase = createClient(
@@ -40,38 +40,38 @@ export default function RoomPage() {
         isPomodoro: true
     });
     
-    // State to manage the positions and directions of capybaras
     const [capyPositions, setCapyPositions] = useState({});
+    const animationInterval = useRef(null);
+    const channelRef = useRef(null);
 
     useEffect(() => {
         const savedTheme = localStorage.getItem('theme') || 'light';
         setTheme(savedTheme);
         updateBackground(savedTheme);
 
-        let channel;
-        let animationFrameId;
-    
         const setupRoom = async () => {
             try {
                 const uuid = uuidv4();
                 setCurrentUserUUID(uuid);
-    
+
                 const username = searchParams.get('username') || 'Anonymous';
                 const currentUserData = {
                     id: uuid,
                     username: username,
                     avatar: getRandomCapyCharacter(),
                 };
-    
+
                 await joinRoom(roomId, currentUserData);
                 setUsers([currentUserData]);
-    
+
                 setCapyPositions((prev) => ({
                     ...prev,
                     [uuid]: { direction: 'right', x: 0, y: 0, bob: 0, moving: true, bobbingUp: true }
                 }));
-    
-                channel = supabase.channel(`room-${roomId}`);
+
+                const channel = supabase.channel(`room-${roomId}`);
+                channelRef.current = channel;
+
                 channel
                     .on('presence', { event: 'join' }, ({ key, newPresences }) => {
                         newPresences.forEach(presence => handlePresenceJoin(roomId, presence));
@@ -79,7 +79,7 @@ export default function RoomPage() {
                             ...prevUsers,
                             ...newPresences.filter(newUser => !prevUsers.some(existingUser => existingUser.id === newUser.id)),
                         ]);
-    
+
                         newPresences.forEach(presence => {
                             const id = presence.user_id;
                             setCapyPositions(prev => ({
@@ -91,7 +91,7 @@ export default function RoomPage() {
                     .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
                         leftPresences.forEach(presence => handlePresenceLeave(roomId, presence));
                         setUsers(prevUsers => prevUsers.filter(user => !leftPresences.find(left => left.id === user.id)));
-    
+
                         leftPresences.forEach(presence => {
                             const id = presence.user_id;
                             setCapyPositions(prev => {
@@ -106,94 +106,149 @@ export default function RoomPage() {
                     .on('broadcast', { event: 'timer_update' }, ({ payload }) => {
                         setTimerState(payload);
                     })
+                    .on('broadcast', { event: 'capy_position_update' }, ({ payload }) => {
+                        setCapyPositions(prev => ({
+                            ...prev,
+                            [payload.id]: payload.position
+                        }));
+                    })
                     .subscribe(async (status) => {
                         if (status === 'SUBSCRIBED') {
                             await channel.track(currentUserData);
+                            startAnimation();
                         }
                     });
-    
-                const moveCapybaras = () => {
-                    setCapyPositions(prev => {
-                        const newPositions = { ...prev };
-                        Object.keys(newPositions).forEach(id => {
-                            const capybara = newPositions[id];
-                            if (!capybara.moving) {
-                                // Smooth return to default Y position
-                                if (capybara.bob !== 0) {
-                                    newPositions[id].bob = capybara.bob > 0 ? capybara.bob - 0.1 : capybara.bob + 0.1;
-                                    if (Math.abs(capybara.bob) < 0.1) newPositions[id].bob = 0;
-                                }
-                                return;
-                            }
-                
-                            const currentDirection = capybara.direction;
-                            const moveAmount = 0.2; // Smaller movement for smoother animation
-                            const bobbingSpeed = 0.1; // Slower bobbing for smoother effect
-                            const maxBob = 5;
-                            const shouldPause = Math.random() > 0.995; // Reduced chance to pause for smoother movement
-                
-                            if (shouldPause) {
-                                capybara.moving = false;
-                                setTimeout(() => {
-                                    setCapyPositions(prevState => ({
-                                        ...prevState,
-                                        [id]: { ...prevState[id], moving: true }
-                                    }));
-                                }, Math.random() * 3000 + 1000);
-                            }
-                
-                            const shouldChangeDirection = Math.random() > 0.998; // Very low chance to change direction
-                            const newDirection = shouldChangeDirection
-                                ? currentDirection === 'left' ? 'right' : 'left'
-                                : currentDirection;
-                
-                            newPositions[id].direction = newDirection;
-                            newPositions[id].x += newDirection === 'right' ? moveAmount : -moveAmount;
-                
-                            // Smoother bobbing logic
-                            if (capybara.bobbingUp) {
-                                newPositions[id].bob += bobbingSpeed;
-                                if (newPositions[id].bob >= maxBob) {
-                                    newPositions[id].bobbingUp = false;
-                                }
-                            } else {
-                                newPositions[id].bob -= bobbingSpeed;
-                                if (newPositions[id].bob <= 0) {
-                                    newPositions[id].bob = 0;
-                                    newPositions[id].bobbingUp = true;
-                                }
-                            }
-                
-                            // Keep within horizontal bounds
-                            newPositions[id].x = Math.min(400, Math.max(-400, newPositions[id].x));
-                        });
-                        return newPositions;
-                    });
-                    
-                    animationFrameId = requestAnimationFrame(moveCapybaras);
-                };
-    
-                moveCapybaras(); // Start the animation loop
+
             } catch (error) {
                 console.error('Error joining room:', error);
                 setError('Failed to join the room. Please try again.');
             }
         };
-    
+
         setupRoom();
-    
+
         return () => {
-            if (channel) {
-                channel.unsubscribe();
+            if (channelRef.current) {
+                channelRef.current.unsubscribe();
             }
             if (currentUserUUID) {
                 leaveRoom(roomId, currentUserUUID);
             }
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
+            if (animationInterval.current) {
+                clearInterval(animationInterval.current);
             }
         };
     }, [roomId, searchParams]);
+
+    useEffect(() => {
+        if (channelRef.current) {
+            channelRef.current.on('broadcast', { event: 'capy_position_update' }, ({ payload }) => {
+                setCapyPositions(prev => ({
+                    ...prev,
+                    [payload.id]: {
+                        ...prev[payload.id],
+                        ...payload.position
+                    }
+                }));
+            });
+        }
+    }, [channelRef.current]);
+
+    const startAnimation = () => {
+// Replace your `moveCapybaras` function with this one
+const moveCapybaras = () => {
+    setCapyPositions(prev => {
+        const newPositions = { ...prev };
+        Object.keys(newPositions).forEach(id => {
+            let capybara = newPositions[id];
+            
+            // Initialize if undefined
+            if (!capybara) {
+                capybara = newPositions[id] = {
+                    direction: 'right',
+                    x: 0,
+                    y: 0,
+                    bob: 0,
+                    moving: true,
+                    bobbingUp: true
+                };
+            }
+
+            // If the capybara is paused or idle, handle bobbing
+            if (!capybara.moving) {
+                if (capybara.bob !== 0) {
+                    capybara.bob = capybara.bob > 0 ? capybara.bob - 0.1 : capybara.bob + 0.1;
+                    if (Math.abs(capybara.bob) < 0.1) capybara.bob = 0;
+                }
+                return;
+            }
+
+            // Movement logic
+            const currentDirection = capybara.direction;
+            const moveAmount = 0.2;
+            const bobbingSpeed = 0.1;
+            const maxBob = 5;
+            const shouldPause = Math.random() > 0.995;
+
+            // Random pause
+            if (shouldPause) {
+                capybara.moving = false;
+                setTimeout(() => {
+                    setCapyPositions(prevState => ({
+                        ...prevState,
+                        [id]: { ...prevState[id], moving: true }
+                    }));
+                }, Math.random() * 3000 + 1000);
+            }
+
+            // Random direction change
+            const shouldChangeDirection = Math.random() > 0.998;
+            const newDirection = shouldChangeDirection
+                ? currentDirection === 'left' ? 'right' : 'left'
+                : currentDirection;
+
+            capybara.direction = newDirection;
+            capybara.x += newDirection === 'right' ? moveAmount : -moveAmount;
+
+            // Bobbing animation
+            if (capybara.bobbingUp) {
+                capybara.bob += bobbingSpeed;
+                if (capybara.bob >= maxBob) {
+                    capybara.bobbingUp = false;
+                }
+            } else {
+                capybara.bob -= bobbingSpeed;
+                if (capybara.bob <= 0) {
+                    capybara.bob = 0;
+                    capybara.bobbingUp = true;
+                }
+            }
+
+            capybara.x = Math.min(400, Math.max(-400, capybara.x));
+        });
+
+        // Broadcast each capybara's position, not just the current user's
+        if (channelRef.current) {
+            Object.keys(newPositions).forEach(userId => {
+                channelRef.current.send({
+                    type: 'broadcast',
+                    event: 'capy_position_update',
+                    payload: {
+                        id: userId,
+                        position: newPositions[userId]
+                    },
+                });
+            });
+        }
+
+        return newPositions;
+    });
+};
+
+    
+        // Use setInterval for more consistent timing across devices
+        animationInterval.current = setInterval(moveCapybaras, 16); // ~60 FPS
+    };
 
     const updateBackground = (newTheme) => {
         const newBackgroundImage = newTheme === 'light'
@@ -207,8 +262,6 @@ export default function RoomPage() {
         updateBackground(newTheme);
         localStorage.setItem('theme', newTheme);
     };
-
-
 
     const handleLeaveRoom = async () => {
         try {
@@ -244,20 +297,26 @@ export default function RoomPage() {
 
     const handleSettingsChange = (newSettings) => {
         setSettings(newSettings);
-        if (timerState.isPomodoro) {
-            setTimerState(prevState => ({
-                ...prevState,
-                time: newSettings.pomodoroTime * 60
-            }));
-        }
-    };
+        setTimerState(prevState => ({
+            ...prevState,
+            time: prevState.isPomodoro 
+                ? newSettings.pomodoroTime * 60 
+                : prevState.isShortBreak 
+                    ? newSettings.shortBreakTime * 60 
+                    : newSettings.longBreakTime * 60
+        }));
+    };    
 
     const handleTimerChange = async (newState) => {
-        setTimerState(newState);
+        const updatedState = {
+            ...newState,
+            time: newState.time, // Ensure this is in seconds
+        };
+        setTimerState(updatedState);
         await supabase.channel(`room-${roomId}`).send({
             type: 'broadcast',
             event: 'timer_update',
-            payload: newState,
+            payload: updatedState,
         });
     };
 
@@ -285,7 +344,7 @@ export default function RoomPage() {
                 onThemeChange={handleThemeChange}
                 currentTheme={theme}
             />
-            <div className={`container mx-auto p-4 `}>
+            <div className={`container mx-auto p-4`}>
                 <div className="flex justify-between items-center mb-10">
                     <h1 className={`text-2xl ${textColorClass}`}>Room {roomId}</h1>
                     <button onClick={handleLeaveRoom} className={`btn btn-error btn-sm ${textColorClass}`}>Leave Room</button>
@@ -297,8 +356,8 @@ export default function RoomPage() {
                                 key={user.id}
                                 className="flex flex-col items-center"
                                 style={{
-                                    transform: `translateX(${capyPositions[user.id]?.x}px) translateY(${capyPositions[user.id]?.y}px)`,
-                                    transition: 'transform 0.05s linear', // Smoother transition
+                                    transform: `translateX(${capyPositions[user.id]?.x || 0}px) translateY(${capyPositions[user.id]?.y || 0}px)`,
+                                    transition: 'transform 0.05s linear',
                                 }}
                             >
                                 <Image
@@ -308,10 +367,10 @@ export default function RoomPage() {
                                     height={150}
                                     style={{
                                         transform: `
-                                            translateY(${capyPositions[user.id]?.bob}px) 
-                                            scaleX(${capyPositions[user.id]?.direction === 'right' ? -1 : 1})
+                                            translateY(${capyPositions[user.id]?.bob || 0}px) 
+                                            scaleX(${(capyPositions[user.id]?.direction === 'right' ? -1 : 1) || 1})
                                         `,
-                                        transition: 'transform 0.05s linear', // Smoother transition
+                                        transition: 'transform 0.05s linear',
                                     }}
                                 />
                                 <span className={`badge mt-2 mb-[-1rem]`}>{user.username}</span>
@@ -319,11 +378,14 @@ export default function RoomPage() {
                         ))}
                     </div>
                     <Timer 
-                        initialTime={timerState.time}
+                        initialTime={timerState.time} // Pass the time in seconds
                         isRunningProp={timerState.isRunning}
                         onTimerChange={handleTimerChange}
                         settings={settings}
                         theme={theme}
+                        pomodoroTime={settings.pomodoroTime * 60} // Convert to seconds
+                        shortBreakTime={settings.shortBreakTime * 60} // Convert to seconds
+                        longBreakTime={settings.longBreakTime * 60} // Convert to seconds
                     />
                 </div>
                 <div className="mt-8"> 

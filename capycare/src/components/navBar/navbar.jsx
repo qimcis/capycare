@@ -1,13 +1,13 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import './NavBar.css'; 
-
 
 export function NavBar({ showSettings = false, onSettingsChange, onThemeChange, currentTheme }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [pomodoroTime, setPomodoroTime] = useState(25);
-    const [breakTime, setBreakTime] = useState(5);
+    const [shortBreakTime, setShortBreakTime] = useState(5);
+    const [longBreakTime, setLongBreakTime] = useState(15);
     const [isChatEnabled, setIsChatEnabled] = useState(true);
 
     const toggleTheme = () => {
@@ -19,12 +19,14 @@ export function NavBar({ showSettings = false, onSettingsChange, onThemeChange, 
 
     const handleSettingsSave = () => {
         onSettingsChange({
-            pomodoroTime,
-            breakTime,
+            pomodoroTime: pomodoroTime, // Convert to seconds
+            shortBreakTime: shortBreakTime, // Convert to seconds
+            longBreakTime: longBreakTime, // Convert to seconds
             isChatEnabled
         });
         setIsModalOpen(false);
     };
+    
 
     return (
         <>
@@ -38,7 +40,8 @@ export function NavBar({ showSettings = false, onSettingsChange, onThemeChange, 
                             type="checkbox"
                             className="theme-controller"
                             onChange={toggleTheme}
-                            checked={currentTheme === 'dark'}                        />
+                            checked={currentTheme === 'dark'}                        
+                        />
                         {/* sun icon */}
                         <svg
                             className={`swap-off h-6 w-6 fill-current ${textColorClass}`}
@@ -62,8 +65,8 @@ export function NavBar({ showSettings = false, onSettingsChange, onThemeChange, 
                             strokeWidth="1.5"
                             stroke="currentColor"
                             className="size-6">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /> 
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932,0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5v.008h.008V16.5H12zM12 16.5v.008h.008V16.5H12zM12 16.5v.008h.008V16.5H12z" />
                             </svg>
                         </button>
                     )}
@@ -71,51 +74,62 @@ export function NavBar({ showSettings = false, onSettingsChange, onThemeChange, 
             </div>
 
             {isModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-                        <h2 className="text-2xl font-bold mb-4">Settings</h2>
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">Pomodoro Time (minutes)</label>
+                <div className="modal modal-open">
+                    <div className="modal-box">
+                        <h2 className="text-lg font-bold">Settings</h2>
+                        <div className="my-4">
+                            <label className="label">
+                                <span className="label-text">Pomodoro Time (min):</span>
+                            </label>
                             <input
                                 type="number"
                                 value={pomodoroTime}
-                                onChange={(e) => setPomodoroTime(parseInt(e.target.value))}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                                onChange={(e) => setPomodoroTime(e.target.value)}
+                                className="input input-bordered w-full max-w-xs"
+                                min="1"
+                                max="60"
                             />
                         </div>
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">Break Time (minutes)</label>
+                        <div className="my-4">
+                            <label className="label">
+                                <span className="label-text">Short Break Time (min):</span>
+                            </label>
                             <input
                                 type="number"
-                                value={breakTime}
-                                onChange={(e) => setBreakTime(parseInt(e.target.value))}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                                value={shortBreakTime}
+                                onChange={(e) => setShortBreakTime(e.target.value)}
+                                className="input input-bordered w-full max-w-xs"
+                                min="1"
+                                max="60"
                             />
                         </div>
-                        <div className="mb-4">
-                            <label className="flex items-center">
+                        <div className="my-4">
+                            <label className="label">
+                                <span className="label-text">Long Break Time (min):</span>
+                            </label>
+                            <input
+                                type="number"
+                                value={longBreakTime}
+                                onChange={(e) => setLongBreakTime(e.target.value)}
+                                className="input input-bordered w-full max-w-xs"
+                                min="1"
+                                max="60"
+                            />
+                        </div>
+                        <div className="my-4">
+                            <label className="label cursor-pointer">
+                                <span className="label-text">Enable Chat</span>
                                 <input
                                     type="checkbox"
                                     checked={isChatEnabled}
-                                    onChange={(e) => setIsChatEnabled(e.target.checked)}
-                                    className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                                    onChange={() => setIsChatEnabled(!isChatEnabled)}
+                                    className="toggle"
                                 />
-                                <span className="ml-2 text-sm text-gray-700">Enable Chat</span>
                             </label>
                         </div>
-                        <div className="flex justify-end">
-                            <button
-                                onClick={() => setIsModalOpen(false)}
-                                className="mr-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-gray-700 bg-gray-200 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleSettingsSave}
-                                className="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                            >
-                                Save
-                            </button>
+                        <div className="modal-action">
+                            <button className="btn" onClick={handleSettingsSave}>Save</button>
+                            <button className="btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
                         </div>
                     </div>
                 </div>
