@@ -1,10 +1,10 @@
 "use client";
 
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import Timer from '@/components/timer/timer';
-import { joinRoom, leaveRoom, handlePresenceJoin, handlePresenceLeave, getRandomCapyCharacter } from '@/app/api/api'; // Removed getRandomCapyCharacter from import
+import { joinRoom, leaveRoom, handlePresenceJoin, handlePresenceLeave, getRandomCapyCharacter } from '@/app/api/api';
 import { NavBar } from '@/components/navBar/navbar';
 import { ChatButton } from '@/components/chatButton/chatbutton';
 import Image from 'next/image';
@@ -17,6 +17,7 @@ const supabase = createClient(
 
 export default function RoomPage() {
     const { roomId } = useParams();
+    const searchParams = useSearchParams();
     const [users, setUsers] = useState([]);
     const [error, setError] = useState(null);
     const router = useRouter();
@@ -40,14 +41,13 @@ export default function RoomPage() {
                 const uuid = uuidv4();
                 setCurrentUserUUID(uuid);
 
+                const username = searchParams.get('username') || 'Anonymous';
                 const currentUserData = {
                     id: uuid,
-                    username: 'current_username', // Replace with actual username
+                    username: username,
                     avatar: getRandomCapyCharacter()
-
                 };
 
-                // Use the randomizeOwnAvatar function to randomize avatar only for the current user
                 await joinRoom(roomId, currentUserData);
                 setUsers([currentUserData]);
 
@@ -91,7 +91,7 @@ export default function RoomPage() {
                 leaveRoom(roomId, currentUserUUID);
             }
         };
-    }, [roomId]);
+    }, [roomId, searchParams]);
 
     const handleLeaveRoom = async () => {
         try {
@@ -127,8 +127,6 @@ export default function RoomPage() {
 
     const handleSettingsChange = (newSettings) => {
         setSettings(newSettings);
-        // You might want to broadcast the new settings to all users in the room
-        // or save them to a database for persistence
     };
 
     const handleTimerChange = async (newState) => {
@@ -157,7 +155,7 @@ export default function RoomPage() {
                         {users.map(user => (
                             <div key={user.id} className="flex flex-col items-center">
                                 <Image
-                                    src={user.avatar} // Use user.avatar to display the correct avatar
+                                    src={user.avatar}
                                     alt={user.username}
                                     width={150}
                                     height={150}
