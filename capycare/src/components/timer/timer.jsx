@@ -1,15 +1,24 @@
 "use client"
 import React, { useState, useEffect, useCallback } from "react";
 
-export default function Timer() {
-    const [time, setTime] = useState(25 * 60);
+export default function Timer({ pomodoroTime = 25, breakTime = 5 }) {
+    const [time, setTime] = useState(pomodoroTime * 60);
     const [isRunning, setIsRunning] = useState(false);
     const [isPomodoro, setIsPomodoro] = useState(true);
     const [theme, setTheme] = useState('light');
-    const [key, setKey] = useState(0); // Add this line
-    const pomodoroTime = 25 * 60;
-    const shortBreakTime = 5 * 60;
-    const longBreakTime = 15 * 60;
+    const [key, setKey] = useState(0);
+    
+    const shortBreakTime = breakTime * 60;
+    const longBreakTime = breakTime * 3 * 60; 
+
+    useEffect(() => {
+        // Reset the timer when pomodoroTime or breakTime changes
+        if (isPomodoro) {
+            setTime(pomodoroTime * 60);
+        } else {
+            setTime(shortBreakTime);
+        }
+    }, [pomodoroTime, breakTime, isPomodoro, shortBreakTime]);
 
     useEffect(() => {
         const savedTheme = localStorage.getItem('theme') || 'light';
@@ -55,7 +64,7 @@ export default function Timer() {
             setTime(shortBreakTime);
         } else {
             setIsPomodoro(true);
-            setTime(pomodoroTime);
+            setTime(pomodoroTime * 60);
         }
     }
 
@@ -66,23 +75,23 @@ export default function Timer() {
     const resetTimer = useCallback(() => {
         setIsRunning(false);
         if (isPomodoro) {
-            setTime(pomodoroTime);
+            setTime(pomodoroTime * 60);
         } else {
             setTime(shortBreakTime);
         }
-    }, [isPomodoro]);
+    }, [isPomodoro, pomodoroTime, shortBreakTime]);
 
     const switchMode = useCallback((mode) => {
         setIsRunning(false);
         setIsPomodoro(mode === 'pomodoro');
         if (mode === 'pomodoro') {
-            setTime(pomodoroTime);
+            setTime(pomodoroTime * 60);
         } else if (mode === 'shortBreak') {
             setTime(shortBreakTime);
         } else if (mode === 'longBreak') {
             setTime(longBreakTime);
         }
-    }, []);
+    }, [pomodoroTime, shortBreakTime, longBreakTime]);
 
     const formatTime = (timeInSeconds) => {
         const minutes = Math.floor(timeInSeconds / 60);
