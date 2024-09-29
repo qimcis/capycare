@@ -43,6 +43,7 @@ export default function RoomPage() {
     const [capyPositions, setCapyPositions] = useState({});
     const animationInterval = useRef(null);
     const channelRef = useRef(null);
+    const audioRef = useRef(null);
 
     useEffect(() => {
         const savedTheme = localStorage.getItem('theme') || 'light';
@@ -155,96 +156,93 @@ export default function RoomPage() {
     }, [channelRef.current]);
 
     const startAnimation = () => {
-// Replace your `moveCapybaras` function with this one
-const moveCapybaras = () => {
-    setCapyPositions(prev => {
-        const newPositions = { ...prev };
-        Object.keys(newPositions).forEach(id => {
-            let capybara = newPositions[id];
-            
-            // Initialize if undefined
-            if (!capybara) {
-                capybara = newPositions[id] = {
-                    direction: 'right',
-                    x: 0,
-                    y: 0,
-                    bob: 0,
-                    moving: true,
-                    bobbingUp: true
-                };
-            }
+        const moveCapybaras = () => {
+            setCapyPositions(prev => {
+                const newPositions = { ...prev };
+                Object.keys(newPositions).forEach(id => {
+                    let capybara = newPositions[id];
+                    
+                    // Initialize if undefined
+                    if (!capybara) {
+                        capybara = newPositions[id] = {
+                            direction: 'right',
+                            x: 0,
+                            y: 0,
+                            bob: 0,
+                            moving: true,
+                            bobbingUp: true
+                        };
+                    }
 
-            // If the capybara is paused or idle, handle bobbing
-            if (!capybara.moving) {
-                if (capybara.bob !== 0) {
-                    capybara.bob = capybara.bob > 0 ? capybara.bob - 0.1 : capybara.bob + 0.1;
-                    if (Math.abs(capybara.bob) < 0.1) capybara.bob = 0;
-                }
-                return;
-            }
+                    // If the capybara is paused or idle, handle bobbing
+                    if (!capybara.moving) {
+                        if (capybara.bob !== 0) {
+                            capybara.bob = capybara.bob > 0 ? capybara.bob - 0.1 : capybara.bob + 0.1;
+                            if (Math.abs(capybara.bob) < 0.1) capybara.bob = 0;
+                        }
+                        return;
+                    }
+                    // Movement logic
+                    const currentDirection = capybara.direction;
+                    const moveAmount = 0.4;
+                    const bobbingSpeed = 0.3;
+                    const maxBob = 5;
+                    const shouldPause = Math.random() > 0.995;
 
-            // Movement logic
-            const currentDirection = capybara.direction;
-            const moveAmount = 0.2;
-            const bobbingSpeed = 0.1;
-            const maxBob = 5;
-            const shouldPause = Math.random() > 0.995;
+                    // Random pause
+                    if (shouldPause) {
+                        capybara.moving = false;
+                        setTimeout(() => {
+                            setCapyPositions(prevState => ({
+                                ...prevState,
+                                [id]: { ...prevState[id], moving: true }
+                            }));
+                        }, Math.random() * 3000 + 1000);
+                    }
 
-            // Random pause
-            if (shouldPause) {
-                capybara.moving = false;
-                setTimeout(() => {
-                    setCapyPositions(prevState => ({
-                        ...prevState,
-                        [id]: { ...prevState[id], moving: true }
-                    }));
-                }, Math.random() * 3000 + 1000);
-            }
+                    // Random direction change
+                    const shouldChangeDirection = Math.random() > 0.998;
+                    const newDirection = shouldChangeDirection
+                        ? currentDirection === 'left' ? 'right' : 'left'
+                        : currentDirection;
 
-            // Random direction change
-            const shouldChangeDirection = Math.random() > 0.998;
-            const newDirection = shouldChangeDirection
-                ? currentDirection === 'left' ? 'right' : 'left'
-                : currentDirection;
+                    capybara.direction = newDirection;
+                    capybara.x += newDirection === 'right' ? moveAmount : -moveAmount;
 
-            capybara.direction = newDirection;
-            capybara.x += newDirection === 'right' ? moveAmount : -moveAmount;
+                    // Bobbing animation
+                    if (capybara.bobbingUp) {
+                        capybara.bob += bobbingSpeed;
+                        if (capybara.bob >= maxBob) {
+                            capybara.bobbingUp = false;
+                        }
+                    } else {
+                        capybara.bob -= bobbingSpeed;
+                        if (capybara.bob <= 0) {
+                            capybara.bob = 0;
+                            capybara.bobbingUp = true;
+                        }
+                    }
 
-            // Bobbing animation
-            if (capybara.bobbingUp) {
-                capybara.bob += bobbingSpeed;
-                if (capybara.bob >= maxBob) {
-                    capybara.bobbingUp = false;
-                }
-            } else {
-                capybara.bob -= bobbingSpeed;
-                if (capybara.bob <= 0) {
-                    capybara.bob = 0;
-                    capybara.bobbingUp = true;
-                }
-            }
-
-            capybara.x = Math.min(400, Math.max(-400, capybara.x));
-        });
-
-        // Broadcast each capybara's position, not just the current user's
-        if (channelRef.current) {
-            Object.keys(newPositions).forEach(userId => {
-                channelRef.current.send({
-                    type: 'broadcast',
-                    event: 'capy_position_update',
-                    payload: {
-                        id: userId,
-                        position: newPositions[userId]
-                    },
+                    capybara.x = Math.min(400, Math.max(-400, capybara.x));
                 });
+
+                // Broadcast each capybara's position, not just the current user's
+                if (channelRef.current) {
+                    Object.keys(newPositions).forEach(userId => {
+                        channelRef.current.send({
+                            type: 'broadcast',
+                            event: 'capy_position_update',
+                            payload: {
+                                id: userId,
+                                position: newPositions[userId]
+                            },
+                        });
+                    });
+                }
+
+                return newPositions;
             });
-        }
-
-        return newPositions;
-    });
-};
-
+        };
     
         // Use setInterval for more consistent timing across devices
         animationInterval.current = setInterval(moveCapybaras, 16); // ~60 FPS
@@ -313,6 +311,12 @@ const moveCapybaras = () => {
             time: newState.time, // Ensure this is in seconds
         };
         setTimerState(updatedState);
+        
+        // Play alarm when timer reaches 0
+        if (updatedState.time === 0 && audioRef.current) {
+            audioRef.current.play();
+        }
+        
         await supabase.channel(`room-${roomId}`).send({
             type: 'broadcast',
             event: 'timer_update',
@@ -344,6 +348,7 @@ const moveCapybaras = () => {
                 onThemeChange={handleThemeChange}
                 currentTheme={theme}
             />
+            <audio ref={audioRef} src="/alarm.mp3" />
             <div className={`container mx-auto p-4`}>
                 <div className="flex justify-between items-center mb-10">
                     <h1 className={`text-2xl ${textColorClass}`}>Room {roomId}</h1>
@@ -378,14 +383,14 @@ const moveCapybaras = () => {
                         ))}
                     </div>
                     <Timer 
-                        initialTime={timerState.time} // Pass the time in seconds
+                        initialTime={timerState.time}
                         isRunningProp={timerState.isRunning}
                         onTimerChange={handleTimerChange}
                         settings={settings}
                         theme={theme}
-                        pomodoroTime={settings.pomodoroTime * 60} // Convert to seconds
-                        shortBreakTime={settings.shortBreakTime * 60} // Convert to seconds
-                        longBreakTime={settings.longBreakTime * 60} // Convert to seconds
+                        pomodoroTime={settings.pomodoroTime * 60}
+                        shortBreakTime={settings.shortBreakTime * 60}
+                        longBreakTime={settings.longBreakTime * 60}
                     />
                 </div>
                 <div className="mt-8 mb-[-10rem]"> 
