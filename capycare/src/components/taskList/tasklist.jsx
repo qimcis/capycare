@@ -98,17 +98,14 @@ const TaskList = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 mb-[-20rem]">
+    <div className="max-w-2xl mx-auto mt-20 p-6 bg-base-200 rounded-box shadow-lg">
       <h2 className="text-2xl font-bold text-center mb-6">Task List</h2>
       
-      <div className="flex justify-between mb-4">
-        <div className="btn-group">
-          <button className={`btn btn-sm ${filter === 'all' ? 'btn-active' : ''}`} onClick={() => setFilter('all')}>All</button>
-          <button className={`btn btn-sm ${filter === 'active' ? 'btn-active' : ''}`} onClick={() => setFilter('active')}>Active</button>
-          <button className={`btn btn-sm ${filter === 'completed' ? 'btn-active' : ''}`} onClick={() => setFilter('completed')}>Completed</button>
+      {!showForm && (
+        <div className="text-center mb-6">
+          <button className="btn btn-primary" onClick={() => setShowForm(true)}>Add New Task</button>
         </div>
-        <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>Add Task</button>
-      </div>
+      )}
 
       {showForm && (
         <TodoForm
@@ -117,6 +114,14 @@ const TaskList = () => {
           onClose={() => setShowForm(false)}
         />
       )}
+
+      <div className="flex justify-between mb-4">
+        <div className="btn-group">
+          <button className={`btn btn-sm ${filter === 'all' ? 'btn-active' : ''}`} onClick={() => setFilter('all')}>All</button>
+          <button className={`btn btn-sm ${filter === 'active' ? 'btn-active' : ''}`} onClick={() => setFilter('active')}>Active</button>
+          <button className={`btn btn-sm ${filter === 'completed' ? 'btn-active' : ''}`} onClick={() => setFilter('completed')}>Completed</button>
+        </div>
+      </div>
 
       <DragDropContext onDragEnd={handleDragEnd}>
         <Droppable droppableId="todos">
