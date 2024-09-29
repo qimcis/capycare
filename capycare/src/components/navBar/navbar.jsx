@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import './NavBar.css'; 
+import Link from 'next/link';
 
 export function NavBar({ showSettings = false, onSettingsChange, onThemeChange, currentTheme }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -31,9 +32,11 @@ export function NavBar({ showSettings = false, onSettingsChange, onThemeChange, 
     return (
         <>
             <div className={`navbar bg-transparent ${textColorClass}`}>
-                <div className="flex-1">
-                    <a className={`btn btn-ghost text-xl ${textColorClass}`}>CapyCare</a>
-                </div>
+                    <div className="flex-1">
+                        <Link href="/" className={`btn btn-ghost text-xl ${textColorClass}`}>
+                            CapyCare
+                        </Link>                
+                    </div>
                 <div className="flex-none">
                     <label className="swap swap-rotate mr-2">
                         <input
