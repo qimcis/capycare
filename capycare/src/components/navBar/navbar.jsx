@@ -1,28 +1,21 @@
-"use client"; 
+"use client"
 
 import React, { useState, useEffect } from 'react';
+import './NavBar.css'; 
 
-export function NavBar({ showSettings = false, onSettingsChange }) {
-    const [theme, setTheme] = useState('light');
+
+export function NavBar({ showSettings = false, onSettingsChange, onThemeChange, currentTheme }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [pomodoroTime, setPomodoroTime] = useState(25);
     const [breakTime, setBreakTime] = useState(5);
     const [isChatEnabled, setIsChatEnabled] = useState(true);
 
-    useEffect(() => {
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        setTheme(savedTheme);
-        document.documentElement.setAttribute('data-theme', savedTheme);
-    }, []);
-
     const toggleTheme = () => {
-        const newTheme = theme === 'light' ? 'dark' : 'light';
-        setTheme(newTheme);
-        localStorage.setItem('theme', newTheme);
-        document.documentElement.setAttribute('data-theme', newTheme);
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        onThemeChange(newTheme);
     };
-
-    const textColorClass = theme === 'light' ? 'text-black' : 'text-white';
+    
+    const textColorClass = currentTheme === 'light' ? 'text-black' : 'text-white';
 
     const handleSettingsSave = () => {
         onSettingsChange({
@@ -35,7 +28,7 @@ export function NavBar({ showSettings = false, onSettingsChange }) {
 
     return (
         <>
-            <div className={`navbar bg-base-100 ${textColorClass}`}>
+            <div className={`navbar bg-transparent ${textColorClass}`}>
                 <div className="flex-1">
                     <a className={`btn btn-ghost text-xl ${textColorClass}`}>CapyCare</a>
                 </div>
@@ -45,8 +38,7 @@ export function NavBar({ showSettings = false, onSettingsChange }) {
                             type="checkbox"
                             className="theme-controller"
                             onChange={toggleTheme}
-                            checked={theme === 'dark'}
-                        />
+                            checked={currentTheme === 'dark'}                        />
                         {/* sun icon */}
                         <svg
                             className={`swap-off h-6 w-6 fill-current ${textColorClass}`}

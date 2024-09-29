@@ -13,7 +13,7 @@ module.exports = {
         foreground: "var(--foreground)",
       },
       fontFamily: {
-        Jost: ['Jost', 'sans-serif'],
+        Fredoka: ['Fredoka', 'sans-serif'],
        },
     },
   },
