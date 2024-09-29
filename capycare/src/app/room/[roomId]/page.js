@@ -9,6 +9,7 @@ import { NavBar } from '@/components/navBar/navbar';
 import { ChatButton } from '@/components/chatButton/chatbutton';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
+import TaskList from '@/components/taskList/tasklist';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -16,6 +17,8 @@ const supabase = createClient(
 );
 
 export default function RoomPage() {
+    const [theme, setTheme] = useState('light');
+    const [backgroundImage, setBackgroundImage] = useState('/images/daytime.png');
     const { roomId } = useParams();
     const searchParams = useSearchParams();
     const [users, setUsers] = useState([]);
@@ -25,16 +28,24 @@ export default function RoomPage() {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [settings, setSettings] = useState({
-        pomodoroTime: 25 * 60,
-        breakTime: 5 * 60,
+        pomodoroTime: 25,
+        shortBreakTime: 5,
+        longBreakTime: 15,
+        autoStartBreaks: false,
+        autoStartPomodoros: false,
         isChatEnabled: true
     });
     const [timerState, setTimerState] = useState({
-        time: settings.pomodoroTime,
-        isRunning: false
+        time: settings.pomodoroTime * 60,
+        isRunning: false,
+        isPomodoro: true
     });
 
     useEffect(() => {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        setTheme(savedTheme);
+        updateBackground(savedTheme);
+
         let channel;
         const setupRoom = async () => {
             try {
@@ -93,6 +104,21 @@ export default function RoomPage() {
         };
     }, [roomId, searchParams]);
 
+    const updateBackground = (newTheme) => {
+        const newBackgroundImage = newTheme === 'light'
+            ? '/images/daytime.png'
+            : '/images/nighttime.png';
+        setBackgroundImage(newBackgroundImage);
+    };
+
+    const handleThemeChange = (newTheme) => {
+        setTheme(newTheme);
+        updateBackground(newTheme);
+        localStorage.setItem('theme', newTheme);
+    };
+
+
+
     const handleLeaveRoom = async () => {
         try {
             if (currentUserUUID) {
@@ -127,6 +153,12 @@ export default function RoomPage() {
 
     const handleSettingsChange = (newSettings) => {
         setSettings(newSettings);
+        if (timerState.isPomodoro) {
+            setTimerState(prevState => ({
+                ...prevState,
+                time: newSettings.pomodoroTime * 60
+            }));
+        }
     };
 
     const handleTimerChange = async (newState) => {
@@ -138,17 +170,34 @@ export default function RoomPage() {
         });
     };
 
+    const textColorClass = theme === 'light' ? 'text-gray-800' : 'text-white';
+    const bgColorClass = theme === 'light' ? 'bg-white' : 'bg-gray-800';
+
     if (error) {
-        return <div className="alert alert-error">{error}</div>;
+        return <div className={`alert alert-error ${textColorClass}`}>{error}</div>;
     }
 
     return (
-        <div className="min-h-screen bg-base-200">
-            <NavBar showSettings={true} onSettingsChange={handleSettingsChange} />
-            <div className="container mx-auto p-4">
+        <div 
+        className={`min-h-screen flex flex-col ${textColorClass}`}
+        style={{
+            backgroundImage: `url(${backgroundImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+        }}
+        >   
+            <NavBar 
+                showSettings={true} 
+                onSettingsChange={handleSettingsChange}
+                settings={settings}
+                onThemeChange={handleThemeChange}
+                currentTheme={theme}
+            />
+            <div className={`container mx-auto p-4 `}>
                 <div className="flex justify-between items-center mb-10">
-                    <h1 className="text-2xl">Room {roomId}</h1>
-                    <button onClick={handleLeaveRoom} className="btn btn-error btn-sm">Leave Room</button>
+                    <h1 className={`text-2xl ${textColorClass}`}>Room {roomId}</h1>
+                    <button onClick={handleLeaveRoom} className={`btn btn-error btn-sm ${textColorClass}`}>Leave Room</button>
                 </div>
                 <div className="flex flex-col items-center">
                     <div className="flex flex-wrap gap-8 justify-center mb-[-12rem]">
@@ -160,7 +209,7 @@ export default function RoomPage() {
                                     width={150}
                                     height={150}
                                 />
-                                <span className="badge badge-primary mt-2 mb-[-1rem]">{user.username}</span>
+                                <span className={`badge mt-2 mb-[-1rem]`}>{user.username}</span>
                             </div>
                         ))}
                     </div>
@@ -168,7 +217,12 @@ export default function RoomPage() {
                         initialTime={timerState.time}
                         isRunningProp={timerState.isRunning}
                         onTimerChange={handleTimerChange}
+                        settings={settings}
+                        theme={theme}
                     />
+                </div>
+                <div className="mt-8"> 
+                    <TaskList theme={theme} />
                 </div>
             </div>
             {settings.isChatEnabled && (
@@ -177,6 +231,7 @@ export default function RoomPage() {
                     sendMessage={sendMessage} 
                     newMessage={newMessage} 
                     setNewMessage={setNewMessage} 
+                    theme={theme}
                 />
             )}
         </div>

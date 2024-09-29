@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-export function NavButtons() {
+export function NavButtons(theme) {
     const router = useRouter();
     const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
     const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
@@ -59,45 +59,54 @@ export function NavButtons() {
         }
     };
 
+    const textColorClass = theme === 'light' ? 'text-gray-800' : 'text-white';
+    const bgColorClass = theme === 'light' ? 'bg-white' : 'bg-gray-800';
+
     return (
-        <div className="flex flex-col items-center justify-center space-y-4">
-            <button className="btn btn-wide" onClick={() => openUsernameModal('create')}>Create Room</button>
-            <button className="btn btn-wide" onClick={() => setIsJoinModalOpen(true)}>Join Room</button>
+        <div className={`flex flex-col items-center justify-center space-y-4 ${textColorClass}`}>
+            <button className={`btn btn-wide ${bgColorClass} ${textColorClass}`} onClick={() => openUsernameModal('create')}>Create Room</button>
+            <button className={`btn btn-wide ${bgColorClass} ${textColorClass}`} onClick={() => setIsJoinModalOpen(true)}>Join Room</button>
 
             {/* Join Room Modal */}
             <input type="checkbox" id="join-room-modal" className="modal-toggle" checked={isJoinModalOpen} onChange={() => setIsJoinModalOpen(!isJoinModalOpen)} />
             <div className="modal">
-                <div className="modal-box">
-                    <h3 className="font-bold text-lg">Join a Room</h3>
+                <div className={`modal-box flex flex-col items-center justify-center ${bgColorClass}`}>
+                    <h3 className={`font-medium text-lg ${textColorClass}`}>Join a Room</h3>
                     <input
                         type="text"
                         placeholder="Enter Room ID"
-                        className="input input-bordered w-full max-w-xs mt-2"
+                        className={`input input-bordered w-full max-w-xs mt-2 text-center ${bgColorClass} ${textColorClass}`}
                         value={roomId}
                         onChange={(e) => setRoomId(e.target.value)}
                     />
                     <div className="modal-action">
-                        <button className="btn btn-primary" onClick={() => openUsernameModal('join')}>Next</button>
-                        <button className="btn" onClick={() => setIsJoinModalOpen(false)}>Cancel</button>
+                        <button className={`btn btn-primary ${textColorClass}`} onClick={() => openUsernameModal('join')}>Next</button>
+                        <button className={`btn ${bgColorClass} ${textColorClass}`} onClick={() => setIsJoinModalOpen(false)}>Cancel</button>
                     </div>
                 </div>  
             </div>
 
             {/* Username Modal */}
-            <input type="checkbox" id="username-modal" className="modal-toggle" checked={isUsernameModalOpen} onChange={() => setIsUsernameModalOpen(!isUsernameModalOpen)} />
+            <input 
+                type="checkbox" 
+                id="username-modal" 
+                className="modal-toggle" 
+                checked={isUsernameModalOpen} 
+                onChange={() => setIsUsernameModalOpen(!isUsernameModalOpen)} 
+            />
             <div className="modal">
-                <div className="modal-box">
-                    <h3 className="font-bold text-lg">Enter Your Username</h3>
+                <div className={`modal-box flex flex-col items-center justify-center ${bgColorClass}`}>
+                    <h3 className={`font-medium text-lg ${textColorClass}`}>Enter Your Username</h3>
                     <input
                         type="text"
                         placeholder="Enter Username"
-                        className="input input-bordered w-full max-w-xs mt-2"
+                        className={`input input-bordered w-full max-w-xs mt-2 text-center ${bgColorClass} ${textColorClass}`}
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                     />
                     <div className="modal-action">
-                        <button className="btn btn-primary" onClick={handleUsernameSubmit}>Submit</button>
-                        <button className="btn" onClick={() => setIsUsernameModalOpen(false)}>Cancel</button>
+                        <button className={`btn btn-primary ${textColorClass}`} onClick={handleUsernameSubmit}>Submit</button>
+                        <button className={`btn ${bgColorClass} ${textColorClass}`} onClick={() => setIsUsernameModalOpen(false)}>Cancel</button>
                     </div>
                 </div>  
             </div>
