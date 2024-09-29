@@ -13,10 +13,23 @@ function generateRoomCode() {
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+const capyCharacters = Array.from({ length: 15 }, (_, index) => `/images/capy${index + 1}.png`);
+
 function getRandomCapyCharacter() {
-    const numberOfCapyCharacters = 15;
-    const randomIndex = Math.floor(Math.random() * numberOfCapyCharacters) + 1;
-    return `/images/capy${randomIndex}.png`;
+    const randomIndex = Math.floor(Math.random() * capyCharacters.length);
+    return capyCharacters[randomIndex];
+}
+
+// Get avatar based on existing mapping or create a new one
+function getUserAvatar(user) {
+    const room = rooms.get(user.roomId);
+    const existingUser = room.users.find((u) => u.id === user.id);
+    if (existingUser) {
+        return existingUser.avatar;
+    } else {
+        const newAvatar = getRandomCapyCharacter();
+        return newAvatar;
+    }
 }
 
 function createRoom() {
@@ -34,7 +47,8 @@ function joinRoom(roomId, user) {
         const uuid = uuidv4();
         userUUIDs.set(user.id, uuid);
         user.uuid = uuid; 
-        user.avatar = getRandomCapyCharacter(); 
+        user.avatar = getUserAvatar(user); // Either get an existing or assign a new avatar
+
         room.users.push(user);
         if (room.users.length === 1) {
             startGame(roomId);
@@ -60,9 +74,9 @@ function handlePresenceJoin(roomId, presence) {
     const newUser = {
         id: presence.user_id,
         name: presence.username,
-        avatar: getRandomCapyCharacter() 
+        roomId: roomId,
     };
-   
+
     if (joinRoom(roomId, newUser)) {
         const room = rooms.get(roomId);
         console.log(`User joined room ${roomId}:`, newUser);
@@ -99,11 +113,21 @@ function closeRoom(roomId) {
       });
 }
 
-function starTimer(roomId) {
+// Start game or session
+function startGame(roomId) {
     const room = rooms.get(roomId);
     if (room) {
         room.status = 'playing';
         openRoom(roomId);
+    }
+}
+
+// Randomize avatar only for the current user when they reload the page
+function randomizeOwnAvatar(userId, roomId) {
+    const room = rooms.get(roomId);
+    const user = room.users.find(u => u.id === userId);
+    if (user) {
+        user.avatar = getRandomCapyCharacter();
     }
 }
 
@@ -120,5 +144,6 @@ export {
     handlePresenceLeave,
     openRoom,
     closeRoom,
+    randomizeOwnAvatar,
     getUserUUID
 };
