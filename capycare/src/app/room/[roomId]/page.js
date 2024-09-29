@@ -1,5 +1,5 @@
-'use client';
-import { useEffect, useState } from 'react';
+"use client";
+
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
@@ -8,6 +8,7 @@ import { joinRoom, leaveRoom, handlePresenceJoin, handlePresenceLeave, getRandom
 import { NavBar } from '@/components/navBar/navbar';
 import { ChatButton } from '@/components/chatButton/chatbutton';
 import Image from 'next/image';
+import { useState, useEffect } from 'react';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
