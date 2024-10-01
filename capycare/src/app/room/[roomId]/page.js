@@ -182,7 +182,7 @@ export default function RoomPage() {
                     
                 return newPositions;
             });
-        };
+        })
     
         animationInterval.current = setInterval(moveCapybaras, 16); // ~60 FPS
     };
@@ -349,4 +349,4 @@ export default function RoomPage() {
             )}
         </div>
     );
-}
+}}
