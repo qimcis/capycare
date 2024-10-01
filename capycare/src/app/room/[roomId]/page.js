@@ -67,7 +67,16 @@ export default function RoomPage() {
 
                 setCapyPositions((prev) => ({
                     ...prev,
-                    [uuid]: { direction: 'right', x: 0, y: 0, bob: 0, moving: true, bobbingUp: true }
+                    [uuid]: {
+                        direction: 'right',
+                        x: 0,
+                        y: 0,
+                        bob: 0,
+                        moving: true,
+                        bobbingUp: true,
+                        seed: Math.floor(Math.random() * 10000),
+                        startTime: Date.now(),
+                    }
                 }));
 
                 const channel = supabase.channel(`room-${roomId}`);
@@ -85,7 +94,16 @@ export default function RoomPage() {
                             const id = presence.user_id;
                             setCapyPositions(prev => ({
                                 ...prev,
-                                [id]: { direction: 'right', x: 0, y: 0, bob: 0, moving: true, bobbingUp: true }
+                                [id]: {
+                                    direction: 'right',
+                                    x: 0,
+                                    y: 0,
+                                    bob: 0,
+                                    moving: true,
+                                    bobbingUp: true,
+                                    seed: Math.floor(Math.random() * 10000),
+                                    startTime: Date.now(),
+                                }
                             }));
                         });
                     })
@@ -162,92 +180,12 @@ export default function RoomPage() {
                 Object.keys(newPositions).forEach(id => {
                     let capybara = newPositions[id];
                     
-                    // Initialize if undefined
-                    if (!capybara) {
-                        capybara = newPositions[id] = {
-                            direction: 'right',
-                            x: 0,
-                            y: 0,
-                            bob: 0,
-                            moving: true,
-                            bobbingUp: true
-                        };
-                    }
-
-                    // If the capybara is paused or idle, handle bobbing
-                    if (!capybara.moving) {
-                        if (capybara.bob !== 0) {
-                            capybara.bob = capybara.bob > 0 ? capybara.bob - 0.1 : capybara.bob + 0.1;
-                            if (Math.abs(capybara.bob) < 0.1) capybara.bob = 0;
-                        }
-                        return;
-                    }
-                    // Movement logic
-                    const currentDirection = capybara.direction;
-                    const moveAmount = 0.4;
-                    const bobbingSpeed = 0.3;
-                    const maxBob = 5;
-                    const shouldPause = Math.random() > 0.995;
-
-                    // Random pause
-                    if (shouldPause) {
-                        capybara.moving = false;
-                        setTimeout(() => {
-                            setCapyPositions(prevState => ({
-                                ...prevState,
-                                [id]: { ...prevState[id], moving: true }
-                            }));
-                        }, Math.random() * 3000 + 1000);
-                    }
-
-                    // Random direction change
-                    const shouldChangeDirection = Math.random() > 0.998;
-                    const newDirection = shouldChangeDirection
-                        ? currentDirection === 'left' ? 'right' : 'left'
-                        : currentDirection;
-
-                    capybara.direction = newDirection;
-                    capybara.x += newDirection === 'right' ? moveAmount : -moveAmount;
-
-                    // Bobbing animation
-                    if (capybara.bobbingUp) {
-                        capybara.bob += bobbingSpeed;
-                        if (capybara.bob >= maxBob) {
-                            capybara.bobbingUp = false;
-                        }
-                    } else {
-                        capybara.bob -= bobbingSpeed;
-                        if (capybara.bob <= 0) {
-                            capybara.bob = 0;
-                            capybara.bobbingUp = true;
-                        }
-                    }
-
-                    capybara.x = Math.min(400, Math.max(-400, capybara.x));
-                });
-
-                // Broadcast each capybara's position, not just the current user's
-                if (channelRef.current) {
-                    Object.keys(newPositions).forEach(userId => {
-                        channelRef.current.send({
-                            type: 'broadcast',
-                            event: 'capy_position_update',
-                            payload: {
-                                id: userId,
-                                position: newPositions[userId]
-                            },
-                        });
-                    });
-                }
-
                 return newPositions;
             });
         };
     
-        // Use setInterval for more consistent timing across devices
         animationInterval.current = setInterval(moveCapybaras, 16); // ~60 FPS
     };
-
     const updateBackground = (newTheme) => {
         const newBackgroundImage = newTheme === 'light'
             ? '/images/daytime.png'
@@ -373,7 +311,7 @@ export default function RoomPage() {
                                     style={{
                                         transform: `
                                             translateY(${capyPositions[user.id]?.bob || 0}px) 
-                                            scaleX(${(capyPositions[user.id]?.direction === 'right' ? -1 : 1) || 1})
+                                            scaleX(${capyPositions[user.id]?.direction === 'left' ? 1 : -1})
                                         `,
                                         transition: 'transform 0.05s linear',
                                     }}
@@ -393,7 +331,7 @@ export default function RoomPage() {
                         longBreakTime={settings.longBreakTime * 60}
                     />
                 </div>
-                <div className="mt-8 mb-[-10rem]"> 
+                <div className="mt-8 mb-[-10rem]">
                     {/* This empty div ensures there's space above the TaskList */}
                 </div>
                 <div className="mt-20">
