@@ -43,7 +43,6 @@ export default function RoomPage() {
     const [capyPositions, setCapyPositions] = useState({});
     const animationInterval = useRef(null);
     const channelRef = useRef(null);
-    const audioRef = useRef(null);
 
     useEffect(() => {
         const savedTheme = localStorage.getItem('theme') || 'light';
@@ -180,9 +179,53 @@ export default function RoomPage() {
                 Object.keys(newPositions).forEach(id => {
                     let capybara = newPositions[id];
                     
+                    const elapsedTime = (Date.now() - capybara.startTime) / 1000; // Time in seconds
+                    const period = 20; // Time to complete one full movement cycle (in seconds)
+                    const amplitude = 400; // Maximum movement in pixels
+    
+                    // Calculate new x position
+                    const newX = amplitude * Math.sin((2 * Math.PI * elapsedTime) / period);
+    
+                    // Update direction based on movement
+                    const newDirection = Math.cos((2 * Math.PI * elapsedTime) / period) > 0 ? 'right' : 'left';
+                    
+                    if (newDirection !== capybara.direction) {
+                        console.log(`Capybara ${id} changed direction: ${capybara.direction} -> ${newDirection}`);
+                    }
+    
+                    capybara.direction = newDirection;
+                    capybara.x = newX;
+    
+                    // Bobbing animation
+                    const bobAmplitude = 5;
+                    const bobPeriod = 1;
+                    capybara.bob = bobAmplitude * Math.sin((2 * Math.PI * elapsedTime) / bobPeriod);
+    
+                    capybara.moving = true;
+                    capybara.bobbingUp = capybara.bob > prev[id]?.bob;
+    
+                    console.log(`Capybara ${id}: x=${capybara.x.toFixed(2)}, direction=${capybara.direction}`);
+                });
+    
+                // Broadcast positions less frequently
+                if (Math.random() < 0.03) { // Approximately every 30 frames
+                    if (channelRef.current) {
+                        Object.keys(newPositions).forEach(userId => {
+                            channelRef.current.send({
+                                type: 'broadcast',
+                                event: 'capy_position_update',
+                                payload: {
+                                    id: userId,
+                                    position: newPositions[userId]
+                                },
+                            });
+                        });
+                    }
+                }
+    
                 return newPositions;
             });
-        })
+        };
     
         animationInterval.current = setInterval(moveCapybaras, 16); // ~60 FPS
     };
@@ -249,12 +292,6 @@ export default function RoomPage() {
             time: newState.time, // Ensure this is in seconds
         };
         setTimerState(updatedState);
-        
-        // Play alarm when timer reaches 0
-        if (updatedState.time === 0 && audioRef.current) {
-            audioRef.current.play();
-        }
-        
         await supabase.channel(`room-${roomId}`).send({
             type: 'broadcast',
             event: 'timer_update',
@@ -286,7 +323,6 @@ export default function RoomPage() {
                 onThemeChange={handleThemeChange}
                 currentTheme={theme}
             />
-            <audio ref={audioRef} src="/alarm.mp3" />
             <div className={`container mx-auto p-4`}>
                 <div className="flex justify-between items-center mb-10">
                     <h1 className={`text-2xl ${textColorClass}`}>Room {roomId}</h1>
@@ -349,4 +385,5 @@ export default function RoomPage() {
             )}
         </div>
     );
-}}
+}
+//
