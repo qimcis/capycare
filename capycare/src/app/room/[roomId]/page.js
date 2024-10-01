@@ -180,7 +180,7 @@ export default function RoomPage() {
                     let capybara = newPositions[id];
                     
                     const elapsedTime = (Date.now() - capybara.startTime) / 1000; // Time in seconds
-                    const period = 20; // Time to complete one full movement cycle (in seconds)
+                    const period = 30; // Time to complete one full movement cycle (in seconds)
                     const amplitude = 400; // Maximum movement in pixels
     
                     // Calculate new x position
