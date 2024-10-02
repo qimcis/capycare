@@ -66,7 +66,16 @@ export default function RoomPage() {
 
                 setCapyPositions((prev) => ({
                     ...prev,
-                    [uuid]: { direction: 'right', x: 0, y: 0, bob: 0, moving: true, bobbingUp: true }
+                    [uuid]: {
+                        direction: 'right',
+                        x: 0,
+                        y: 0,
+                        bob: 0,
+                        moving: true,
+                        bobbingUp: true,
+                        seed: Math.floor(Math.random() * 10000),
+                        startTime: Date.now(),
+                    }
                 }));
 
                 const channel = supabase.channel(`room-${roomId}`);
@@ -84,7 +93,16 @@ export default function RoomPage() {
                             const id = presence.user_id;
                             setCapyPositions(prev => ({
                                 ...prev,
-                                [id]: { direction: 'right', x: 0, y: 0, bob: 0, moving: true, bobbingUp: true }
+                                [id]: {
+                                    direction: 'right',
+                                    x: 0,
+                                    y: 0,
+                                    bob: 0,
+                                    moving: true,
+                                    bobbingUp: true,
+                                    seed: Math.floor(Math.random() * 10000),
+                                    startTime: Date.now(),
+                                }
                             }));
                         });
                     })
@@ -155,101 +173,62 @@ export default function RoomPage() {
     }, [channelRef.current]);
 
     const startAnimation = () => {
-// Replace your `moveCapybaras` function with this one
-const moveCapybaras = () => {
-    setCapyPositions(prev => {
-        const newPositions = { ...prev };
-        Object.keys(newPositions).forEach(id => {
-            let capybara = newPositions[id];
-            
-            // Initialize if undefined
-            if (!capybara) {
-                capybara = newPositions[id] = {
-                    direction: 'right',
-                    x: 0,
-                    y: 0,
-                    bob: 0,
-                    moving: true,
-                    bobbingUp: true
-                };
-            }
-
-            // If the capybara is paused or idle, handle bobbing
-            if (!capybara.moving) {
-                if (capybara.bob !== 0) {
-                    capybara.bob = capybara.bob > 0 ? capybara.bob - 0.1 : capybara.bob + 0.1;
-                    if (Math.abs(capybara.bob) < 0.1) capybara.bob = 0;
-                }
-                return;
-            }
-
-            // Movement logic
-            const currentDirection = capybara.direction;
-            const moveAmount = 0.2;
-            const bobbingSpeed = 0.1;
-            const maxBob = 5;
-            const shouldPause = Math.random() > 0.995;
-
-            // Random pause
-            if (shouldPause) {
-                capybara.moving = false;
-                setTimeout(() => {
-                    setCapyPositions(prevState => ({
-                        ...prevState,
-                        [id]: { ...prevState[id], moving: true }
-                    }));
-                }, Math.random() * 3000 + 1000);
-            }
-
-            // Random direction change
-            const shouldChangeDirection = Math.random() > 0.998;
-            const newDirection = shouldChangeDirection
-                ? currentDirection === 'left' ? 'right' : 'left'
-                : currentDirection;
-
-            capybara.direction = newDirection;
-            capybara.x += newDirection === 'right' ? moveAmount : -moveAmount;
-
-            // Bobbing animation
-            if (capybara.bobbingUp) {
-                capybara.bob += bobbingSpeed;
-                if (capybara.bob >= maxBob) {
-                    capybara.bobbingUp = false;
-                }
-            } else {
-                capybara.bob -= bobbingSpeed;
-                if (capybara.bob <= 0) {
-                    capybara.bob = 0;
-                    capybara.bobbingUp = true;
-                }
-            }
-
-            capybara.x = Math.min(400, Math.max(-400, capybara.x));
-        });
-
-        // Broadcast each capybara's position, not just the current user's
-        if (channelRef.current) {
-            Object.keys(newPositions).forEach(userId => {
-                channelRef.current.send({
-                    type: 'broadcast',
-                    event: 'capy_position_update',
-                    payload: {
-                        id: userId,
-                        position: newPositions[userId]
-                    },
-                });
-            });
-        }
-
-        return newPositions;
-    });
-};
-
+        const moveCapybaras = () => {
+            setCapyPositions(prev => {
+                const newPositions = { ...prev };
+                Object.keys(newPositions).forEach(id => {
+                    let capybara = newPositions[id];
+                    
+                    const elapsedTime = (Date.now() - capybara.startTime) / 1000; // Time in seconds
+                    const period = 30; // Time to complete one full movement cycle (in seconds)
+                    const amplitude = 400; // Maximum movement in pixels
     
-        // Use setInterval for more consistent timing across devices
+                    // Calculate new x position
+                    const newX = amplitude * Math.sin((2 * Math.PI * elapsedTime) / period);
+    
+                    // Update direction based on movement
+                    const newDirection = Math.cos((2 * Math.PI * elapsedTime) / period) > 0 ? 'right' : 'left';
+                    
+                    if (newDirection !== capybara.direction) {
+                        console.log(`Capybara ${id} changed direction: ${capybara.direction} -> ${newDirection}`);
+                    }
+    
+                    capybara.direction = newDirection;
+                    capybara.x = newX;
+    
+                    // Bobbing animation
+                    const bobAmplitude = 5;
+                    const bobPeriod = 1;
+                    capybara.bob = bobAmplitude * Math.sin((2 * Math.PI * elapsedTime) / bobPeriod);
+    
+                    capybara.moving = true;
+                    capybara.bobbingUp = capybara.bob > prev[id]?.bob;
+    
+                    console.log(`Capybara ${id}: x=${capybara.x.toFixed(2)}, direction=${capybara.direction}`);
+                });
+    
+                // Broadcast positions less frequently
+                if (Math.random() < 0.03) { // Approximately every 30 frames
+                    if (channelRef.current) {
+                        Object.keys(newPositions).forEach(userId => {
+                            channelRef.current.send({
+                                type: 'broadcast',
+                                event: 'capy_position_update',
+                                payload: {
+                                    id: userId,
+                                    position: newPositions[userId]
+                                },
+                            });
+                        });
+                    }
+                }
+    
+                return newPositions;
+            });
+        };
+    
         animationInterval.current = setInterval(moveCapybaras, 16); // ~60 FPS
     };
-
     const updateBackground = (newTheme) => {
         const newBackgroundImage = newTheme === 'light'
             ? '/images/daytime.png'
@@ -368,7 +347,7 @@ const moveCapybaras = () => {
                                     style={{
                                         transform: `
                                             translateY(${capyPositions[user.id]?.bob || 0}px) 
-                                            scaleX(${(capyPositions[user.id]?.direction === 'right' ? -1 : 1) || 1})
+                                            scaleX(${capyPositions[user.id]?.direction === 'left' ? 1 : -1})
                                         `,
                                         transition: 'transform 0.05s linear',
                                     }}
@@ -378,17 +357,21 @@ const moveCapybaras = () => {
                         ))}
                     </div>
                     <Timer 
-                        initialTime={timerState.time} // Pass the time in seconds
+                        initialTime={timerState.time}
                         isRunningProp={timerState.isRunning}
                         onTimerChange={handleTimerChange}
                         settings={settings}
                         theme={theme}
-                        pomodoroTime={settings.pomodoroTime * 60} // Convert to seconds
-                        shortBreakTime={settings.shortBreakTime * 60} // Convert to seconds
-                        longBreakTime={settings.longBreakTime * 60} // Convert to seconds
+                        pomodoroTime={settings.pomodoroTime * 60}
+                        shortBreakTime={settings.shortBreakTime * 60}
+                        longBreakTime={settings.longBreakTime * 60}
                     />
                 </div>
+<<<<<<< HEAD
                 <div className="mt-8 mb-[-18rem]"> 
+=======
+                <div className="mt-8 mb-[-10rem]">
+>>>>>>> 53069c2623fa924133f27d5ee16234af0ab713e1
                     {/* This empty div ensures there's space above the TaskList */}
                 </div>
                 <div className="mt-20">
@@ -407,3 +390,4 @@ const moveCapybaras = () => {
         </div>
     );
 }
+//

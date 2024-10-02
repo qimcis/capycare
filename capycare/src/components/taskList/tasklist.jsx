@@ -13,8 +13,23 @@ const TodoItem = ({ todo, index, actions, isEditing, isSelected, onEditTodo, onC
         onClick={() => onClickTodo(todo.id)}
       >
         <div className="card-body p-4">
-          <h3 className="card-title text-lg">{todo.title}</h3>
-          <p>{todo.description}</p>
+          <div className="flex items-center">
+            <label className="cursor-pointer label">
+              <input
+                type="checkbox"
+                checked={todo.completed}
+                className="checkbox checkbox-primary"
+                onChange={(e) => {
+                  e.stopPropagation();
+                  actions.toggle(todo.id);
+                }}
+              />
+            </label>
+            <h3 className={`card-title text-lg ml-2 ${todo.completed ? 'line-through text-gray-500' : ''}`}>
+              {todo.title}
+            </h3>
+          </div>
+          <p className={todo.completed ? 'text-gray-500' : ''}>{todo.description}</p>
           <div className="card-actions justify-end">
             <button className="btn btn-xs btn-ghost" onClick={() => onEditTodo(todo.id)}>Edit</button>
             <button className="btn btn-xs btn-ghost" onClick={() => actions.delete(todo.id)}>Delete</button>
@@ -31,7 +46,7 @@ const TodoForm = ({ mode, todo, onAddTodo, onClose }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onAddTodo({ id: todo?.id || uuidv4(), title, description });
+    onAddTodo({ id: todo?.id || uuidv4(), title, description, completed: false });
     onClose();
   };
 
