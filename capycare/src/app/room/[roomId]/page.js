@@ -388,7 +388,7 @@ const moveCapybaras = () => {
                         longBreakTime={settings.longBreakTime * 60} // Convert to seconds
                     />
                 </div>
-                <div className="mt-8 mb-[-10rem]"> 
+                <div className="mt-8 mb-[-18rem]"> 
                     {/* This empty div ensures there's space above the TaskList */}
                 </div>
                 <div className="mt-20">
